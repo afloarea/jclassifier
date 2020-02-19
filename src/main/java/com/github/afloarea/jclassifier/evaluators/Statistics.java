@@ -1,79 +1,124 @@
 package com.github.afloarea.jclassifier.evaluators;
 
+import java.util.Arrays;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
-public class Statistics {
-    private static final String LINE_SEPARATOR = System.lineSeparator();
+/**
+ * Statistics comprised of:
+ * <ul>
+ *     <li>
+ *         confusion matrix:
+ *         <ul>
+ *             <li>first index represents the guessed labels</li>
+ *             <li>second index represents the actual labels</li>
+ *         </ul>
+ *     </li>
+ *     <li>accuracy</li>
+ *     <li>precision</li>
+ *     <li>recall</li>
+ *     <li>F1 score</li>
+ * </ul>
+ */
+public final class Statistics {
 
-    private int[][] confusionMatrix;
-    private double accuracy;
-    private double precision;
-    private double recall;
-    private double f1Score;
+    private final int[][] confusionMatrix;
+    private final double accuracy;
+    private final double precision;
+    private final double recall;
+    private final double f1Score;
 
-    Statistics() {}
+    Statistics(int[][] confusionMatrix) {
+        this.confusionMatrix = confusionMatrix;
+
+        int     diagSum         = 0;
+        int     totalSum        = 0;
+        double  precisionSum    = 0;
+        double  recallSum       = 0;
+        double  f1ScoreSum      = 0;
+
+        for (int firstIndex = 0; firstIndex < confusionMatrix.length; firstIndex++) {
+
+            final int truePositives = confusionMatrix[firstIndex][firstIndex];
+            diagSum += truePositives;
+
+            int falsePositives = 0;
+            int falseNegatives = 0;
+
+            for (int secondIndex = 0; secondIndex < confusionMatrix.length; secondIndex++) {
+
+                totalSum += confusionMatrix[firstIndex][secondIndex];
+                if (secondIndex != firstIndex) {
+                    falseNegatives += confusionMatrix[secondIndex][firstIndex];
+                    falsePositives += confusionMatrix[firstIndex][secondIndex];
+                }
+
+            }
+
+            final double classPrecision = (double) truePositives / (truePositives + falsePositives);
+            final double classRecall = (double) truePositives / (truePositives + falseNegatives);
+
+            precisionSum += classPrecision;
+            recallSum += classRecall;
+            f1ScoreSum += 2 / (1 / classPrecision + 1 / classRecall);
+        }
+
+        this.accuracy = (double) diagSum / totalSum;
+        this.precision = precisionSum / confusionMatrix.length;
+        this.recall = recallSum / confusionMatrix.length;
+        this.f1Score = f1ScoreSum / confusionMatrix.length;
+    }
 
     @Override
     public String toString() {
-        return LINE_SEPARATOR + "-".repeat(26) + LINE_SEPARATOR +
-                String.format("Accuracy:           %.4f", accuracy) + LINE_SEPARATOR +
-                String.format("Precision (avg):    %.4f", precision) + LINE_SEPARATOR +
-                String.format("Recall (avg):       %.4f", recall) + LINE_SEPARATOR +
-                String.format("F1 Score (avg):     %.4f", f1Score) + LINE_SEPARATOR +
-                "-".repeat(26) + LINE_SEPARATOR +
-                "Confusion Matrix ( G - actual, A - actual): " + LINE_SEPARATOR + getConfusionMatrixString() + LINE_SEPARATOR;
+        return String.format("%n--------------------------%n" +
+                "%-15s: %8.4f %n" +
+                "%-15s: %8.4f %n" +
+                "%-15s: %8.4f %n" +
+                "%-15s: %8.4f %n" +
+                "--------------------------%n" +
+                "Confusion Matrix ( G - guessed, A - actual ):%n" +
+                "%s%n",
+                "Accuracy", accuracy,
+                "Precision (avg)", precision,
+                "Recall (avg)", recall,
+                "F1 Score (avg)", f1Score,
+                getConfusionMatrixString());
     }
 
     private String getConfusionMatrixString() {
-        final StringBuilder builder = new StringBuilder(String.format("%5s", "G\\A"));
-        IntStream.range(0, confusionMatrix.length).forEach(value -> builder.append(String.format("%5d", value)));
-        builder.append(LINE_SEPARATOR);
-        for (int i = 0; i < confusionMatrix.length; i++) {
-            builder.append(String.format("%5d", i));
-            IntStream.of(confusionMatrix[i]).forEach(value -> builder.append(String.format("%5d", value)));
-            builder.append(LINE_SEPARATOR);
+        String template = ("%5d".repeat(confusionMatrix.length + 1) + "%n").repeat(confusionMatrix.length);
+        template = "%5s" + template.substring(3);
+
+        Stream<Object> stream = Stream.concat(Stream.of("G\\A"), IntStream.range(0, confusionMatrix.length).boxed());
+        for (int index = 0; index < confusionMatrix.length; index++) {
+            stream = Stream.concat(stream, Stream.concat(Stream.of(index), Arrays.stream(confusionMatrix[index]).boxed()));
         }
 
-        return builder.toString();
+        return String.format(template, stream.toArray());
     }
 
+    /**
+     * The first index of the matrix corresponds to the guessed labels while the second index corresponds to the actual labels.
+     * @return the confusion matrix
+     */
     public int[][] getConfusionMatrix() {
         return confusionMatrix;
-    }
-
-    public void setConfusionMatrix(int[][] confusionMatrix) {
-        this.confusionMatrix = confusionMatrix;
     }
 
     public double getAccuracy() {
         return accuracy;
     }
 
-    public void setAccuracy(double accuracy) {
-        this.accuracy = accuracy;
-    }
-
     public double getPrecision() {
         return precision;
-    }
-
-    public void setPrecision(double precision) {
-        this.precision = precision;
     }
 
     public double getRecall() {
         return recall;
     }
 
-    public void setRecall(double recall) {
-        this.recall = recall;
-    }
-
     public double getF1Score() {
         return f1Score;
-    }
-
-    public void setF1Score(double f1Score) {
-        this.f1Score = f1Score;
     }
 }
