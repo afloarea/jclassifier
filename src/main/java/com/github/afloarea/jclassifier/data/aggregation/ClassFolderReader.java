@@ -36,7 +36,7 @@ public class ClassFolderReader {
         return dataSet;
     }
 
-    private double[][] readFeatures(FeatureExtractor featureExtractor, boolean normalized) throws IOException{
+    private double[][] readFeatures(FeatureExtractor featureExtractor, boolean normalized) throws IOException {
         try (final Stream<Path> files = Files.list(classFolder)) {
             return files.map(imagePath -> {
                 try (InputStream inputStream = Files.newInputStream(imagePath, StandardOpenOption.READ)) {
@@ -53,10 +53,6 @@ public class ClassFolderReader {
     }
 
     private static double[] convertToDoubleArray(int[] array) {
-        final var result = new double[array.length];
-        for (var i = 0; i < array.length; i++) {
-            result[i] = array[i];
-        }
-        return result;
+        return Arrays.stream(array).mapToDouble(x -> x).toArray();
     }
 }

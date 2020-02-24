@@ -23,14 +23,14 @@ public final class Knn {
     }
 
     public static Knn of(double[][] trainFeaturesWithLastColumnLabels, int kNumberOfNeighbours) {
-        final int[] trainLabels = new int[trainFeaturesWithLastColumnLabels.length];
-        final double[][] trainFeatures = new double[trainFeaturesWithLastColumnLabels.length][];
+        final int           featuresSize    = trainFeaturesWithLastColumnLabels.length;
+        final int           labelIndex      = trainFeaturesWithLastColumnLabels[0].length - 1;
+        final double[][]    trainFeatures   = new double[featuresSize][];
+        final int[]         trainLabels     = new int[featuresSize];
 
-        final int labelIndex = trainFeaturesWithLastColumnLabels[0].length - 1;
-
-        for (int i = 0; i < trainFeaturesWithLastColumnLabels.length; i++) {
-            trainFeatures[i] = Arrays.copyOf(trainFeaturesWithLastColumnLabels[i], labelIndex);
-            trainLabels[i] = (int) trainFeaturesWithLastColumnLabels[i][labelIndex];
+        for (int index = 0; index < featuresSize; index++) {
+            trainFeatures[index] = Arrays.copyOf(trainFeaturesWithLastColumnLabels[index], labelIndex);
+            trainLabels[index] = (int) trainFeaturesWithLastColumnLabels[index][labelIndex];
         }
 
         return new Knn(trainFeatures, trainLabels, kNumberOfNeighbours);
@@ -46,14 +46,10 @@ public final class Knn {
     }
 
     public int classify(double[] features) {
-        final double[] distances = Arrays
-                .stream(trainFeatures)
-                .mapToDouble(trainFeature -> calculateEuclidianDistance(features, trainFeature))
-                .toArray();
-        final Neighbour[] neighbours = Neighbour.createGroupFrom(distances, trainLabels);
-        Arrays.sort(neighbours);
-
-        final Map<Integer, Long> groupedNeighbours = Stream.of(neighbours)
+        final Map<Integer, Long> groupedNeighbours = IntStream
+                .range(0, trainFeatures.length)
+                .mapToObj(index -> new Neighbour(calculateEuclidianDistance(features, trainFeatures[index]), trainLabels[index]))
+                .sorted()
                 .limit(kNumberOfNeighbours)
                 .collect(Collectors.groupingBy(Neighbour::getLabel, Collectors.counting()));
 

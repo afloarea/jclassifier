@@ -31,42 +31,11 @@ public final class Statistics {
     Statistics(int[][] confusionMatrix) {
         this.confusionMatrix = confusionMatrix;
 
-        int     diagSum         = 0;
-        int     totalSum        = 0;
-        double  precisionSum    = 0;
-        double  recallSum       = 0;
-        double  f1ScoreSum      = 0;
-
-        for (int firstIndex = 0; firstIndex < confusionMatrix.length; firstIndex++) {
-
-            final int truePositives = confusionMatrix[firstIndex][firstIndex];
-            diagSum += truePositives;
-
-            int falsePositives = 0;
-            int falseNegatives = 0;
-
-            for (int secondIndex = 0; secondIndex < confusionMatrix.length; secondIndex++) {
-
-                totalSum += confusionMatrix[firstIndex][secondIndex];
-                if (secondIndex != firstIndex) {
-                    falseNegatives += confusionMatrix[secondIndex][firstIndex];
-                    falsePositives += confusionMatrix[firstIndex][secondIndex];
-                }
-
-            }
-
-            final double classPrecision = (double) truePositives / (truePositives + falsePositives);
-            final double classRecall = (double) truePositives / (truePositives + falseNegatives);
-
-            precisionSum += classPrecision;
-            recallSum += classRecall;
-            f1ScoreSum += 2 / (1 / classPrecision + 1 / classRecall);
-        }
-
-        this.accuracy = (double) diagSum / totalSum;
-        this.precision = precisionSum / confusionMatrix.length;
-        this.recall = recallSum / confusionMatrix.length;
-        this.f1Score = f1ScoreSum / confusionMatrix.length;
+        final CoreStats stats = CoreStats.fromConfusionMatrix(confusionMatrix);
+        this.accuracy = stats.accuracy;
+        this.precision = stats.precision;
+        this.recall = stats.recall;
+        this.f1Score = stats.f1Score;
     }
 
     @Override
@@ -120,5 +89,53 @@ public final class Statistics {
 
     public double getF1Score() {
         return f1Score;
+    }
+
+    private static final class CoreStats {
+        private double accuracy;
+        private double precision;
+        private double recall;
+        private double f1Score;
+
+        private static CoreStats fromConfusionMatrix(int[][] confusionMatrix) {
+            int     diagSum         = 0;
+            int     totalSum        = 0;
+            double  precisionSum    = 0;
+            double  recallSum       = 0;
+            double  f1ScoreSum      = 0;
+
+            for (int firstIndex = 0; firstIndex < confusionMatrix.length; firstIndex++) {
+
+                final int truePositives = confusionMatrix[firstIndex][firstIndex];
+                diagSum += truePositives;
+
+                int falsePositives = 0;
+                int falseNegatives = 0;
+
+                for (int secondIndex = 0; secondIndex < confusionMatrix.length; secondIndex++) {
+
+                    totalSum += confusionMatrix[firstIndex][secondIndex];
+                    if (secondIndex != firstIndex) {
+                        falseNegatives += confusionMatrix[secondIndex][firstIndex];
+                        falsePositives += confusionMatrix[firstIndex][secondIndex];
+                    }
+
+                }
+
+                final double classPrecision = (double) truePositives / (truePositives + falsePositives);
+                final double classRecall = (double) truePositives / (truePositives + falseNegatives);
+
+                precisionSum += classPrecision;
+                recallSum += classRecall;
+                f1ScoreSum += 2 / (1 / classPrecision + 1 / classRecall);
+            }
+
+            final CoreStats stats = new CoreStats();
+            stats.accuracy = (double) diagSum / totalSum;
+            stats.precision = precisionSum / confusionMatrix.length;
+            stats.recall = recallSum / confusionMatrix.length;
+            stats.f1Score = f1ScoreSum / confusionMatrix.length;
+            return stats;
+        }
     }
 }

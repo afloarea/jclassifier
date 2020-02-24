@@ -1,7 +1,6 @@
 package com.github.afloarea.jclassifier.classifiers.knn;
 
 import java.util.Objects;
-import java.util.stream.IntStream;
 
 public final class Neighbour implements Comparable<Neighbour> {
     private final double distance;
@@ -28,13 +27,6 @@ public final class Neighbour implements Comparable<Neighbour> {
     @Override
     public int hashCode() {
         return Objects.hash(distance);
-    }
-
-    public static Neighbour[] createGroupFrom(double[] distances, int[] labels) {
-        return IntStream
-                .range(0, distances.length)
-                .mapToObj(index -> new Neighbour(distances[index], labels[index]))
-                .toArray(Neighbour[]::new);
     }
 
     public double getDistance() {

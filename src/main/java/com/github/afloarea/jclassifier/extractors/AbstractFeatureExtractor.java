@@ -13,9 +13,9 @@ public abstract class AbstractFeatureExtractor implements FeatureExtractor {
         final int[] rgb = image.getRGB(0, 0, image.getWidth(), image.getHeight(), rgbArray, 0, image.getWidth());
 
         for (int pixel : rgb) {
-            final int red = pixel >> 16 & 0xff;
-            final int green = pixel >> 8 & 0xff;
-            final int blue = pixel & 0xff;
+            final int red   = pixel >> 16 & 0xff;
+            final int green = pixel >>  8 & 0xff;
+            final int blue  = pixel       & 0xff;
 
             processPixel(red, green, blue, features);
         }
