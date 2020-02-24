@@ -3,13 +3,13 @@ package com.github.afloarea.jclassifier.evaluators;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-public class BasicEvaluatorTest {
+class BasicEvaluatorTest {
 
     private static final int[] trueLabels =     {0, 1, 1, 0};
     private static final int[] guessedLabels =  {0, 1, 1, 1};
 
     @Test
-    public void testSimpleConfusionMatrix() {
+    void testSimpleConfusionMatrix() {
         final int[][] confusionMatrix = BasicEvaluator.getConfusionMatrix(trueLabels, guessedLabels);
         final int[][] expectedMatrix = {
                 {1, 0},
@@ -21,7 +21,7 @@ public class BasicEvaluatorTest {
     }
 
     @Test
-    public void testStatistics() {
+    void testStatistics() {
         final int[][] confusionMatrix = {
                 {5, 2, 0},
                 {3, 3, 2},
