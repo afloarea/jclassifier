@@ -14,7 +14,7 @@ import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
 import java.util.stream.Stream;
 
-public class ClassFolderReader {
+public final class ClassFolderReader {
 
     private final int classLabel;
     private final Path classFolder;
@@ -24,7 +24,7 @@ public class ClassFolderReader {
         this.classFolder = classFolder;
     }
 
-    public DataSet extractDataSet(FeatureExtractor featureExtractor, boolean normalized) throws IOException {
+    public DataSet extractDataSet(FeatureExtractor featureExtractor, boolean normalized) {
         final double[][] features = readFeatures(featureExtractor, normalized);
         final int[] labels = new int[features.length];
         Arrays.fill(labels, classLabel);
@@ -36,7 +36,7 @@ public class ClassFolderReader {
         return dataSet;
     }
 
-    private double[][] readFeatures(FeatureExtractor featureExtractor, boolean normalized) throws IOException {
+    private double[][] readFeatures(FeatureExtractor featureExtractor, boolean normalized) {
         try (final Stream<Path> files = Files.list(classFolder)) {
             return files.map(imagePath -> {
                 try (InputStream inputStream = Files.newInputStream(imagePath, StandardOpenOption.READ)) {
@@ -47,8 +47,8 @@ public class ClassFolderReader {
                     throw new UncheckedIOException(e);
                 }
             }).toArray(double[][]::new);
-        } catch (UncheckedIOException e) {
-            throw e.getCause();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
         }
     }
 

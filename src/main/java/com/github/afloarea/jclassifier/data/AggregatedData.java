@@ -6,12 +6,12 @@ public final class AggregatedData {
 
     private DataSet trainData;
     private DataSet testData;
-    private Map<String, Integer> labelsMap;
+    private Map<Integer, String> labelsMap;
 
     public AggregatedData() {
     }
 
-    public AggregatedData(DataSet trainData, DataSet testData, Map<String, Integer> labelsMap) {
+    public AggregatedData(DataSet trainData, DataSet testData, Map<Integer, String> labelsMap) {
         this.trainData = trainData;
         this.testData = testData;
         this.labelsMap = labelsMap;
@@ -33,11 +33,11 @@ public final class AggregatedData {
         this.testData = testData;
     }
 
-    public Map<String, Integer> getLabelsMap() {
+    public Map<Integer, String> getLabelsMap() {
         return labelsMap;
     }
 
-    public void setLabelsMap(Map<String, Integer> labelsMap) {
+    public void setLabelsMap(Map<Integer, String> labelsMap) {
         this.labelsMap = labelsMap;
     }
 }

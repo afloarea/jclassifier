@@ -9,17 +9,16 @@ import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.TreeMap;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-public class DataAggregator {
+public final class DataAggregator {
 
     private final String rootDataFolderPath;
     private final FeatureExtractor featureExtractor;
@@ -37,6 +36,60 @@ public class DataAggregator {
         this.random = random;
         this.trainPercentage = trainPercentage;
         this.normalized = normalized;
+    }
+
+    public AggregatedData aggregateData(boolean inParallel) throws IOException {
+        final Map<Integer, Path> pathsByLabels = mapLabels();
+
+        final DataSet[][] dataSets;
+        try {
+            dataSets = inParallel ? retrieveDataInParallel(pathsByLabels) : retrieveDataSequentially(pathsByLabels);
+        } catch (UncheckedIOException e) {
+            throw e.getCause();
+        }
+
+        final var trainDataSets = new DataSet[dataSets.length];
+        final var testDataSets = new DataSet[dataSets.length];
+
+        // separate train and test data sets
+        for (int index = 0; index < dataSets.length; index++) {
+            trainDataSets[index] = dataSets[index][0];
+            testDataSets[index] = dataSets[index][1];
+        }
+
+        final DataSet trainDataSet = DataSet.concatenate(trainDataSets);
+        final DataSet testDataSet = DataSet.concatenate(testDataSets);
+
+        final var labelsMap = pathsByLabels.entrySet().stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().getFileName().toString()));
+        return new AggregatedData(trainDataSet, testDataSet, new TreeMap<>(labelsMap));
+    }
+
+    private DataSet[][] retrieveDataSequentially(Map<Integer, Path> labelsMap) {
+        return labelsMap.entrySet().stream()
+                .map(entry -> new ClassFolderReader(entry.getKey(), entry.getValue()))
+                .map(classFolderReader -> classFolderReader.extractDataSet(featureExtractor, normalized))
+                .map(dataSet -> DataSet.splitInTwo(DataSet.shuffleDataSet(dataSet, random), trainPercentage))
+                .toArray(DataSet[][]::new);
+    }
+
+    private DataSet[][] retrieveDataInParallel(Map<Integer, Path> labelsMap) {
+        return labelsMap.entrySet().parallelStream()
+                .map(entry -> new ClassFolderReader(entry.getKey(), entry.getValue()))
+                .map(classFolderReader -> classFolderReader.extractDataSet(featureExtractor.copy(), normalized))
+                .map(dataSet -> DataSet.splitInTwo(DataSet.shuffleDataSet(dataSet, random), trainPercentage))
+                .toArray(DataSet[][]::new);
+    }
+
+    private Map<Integer, Path> mapLabels() throws IOException {
+        final List<Path> folders;
+        try (Stream<Path> dataFolders = Files.list(Paths.get(rootDataFolderPath))) {
+            folders = dataFolders.collect(Collectors.toList());
+        }
+
+        return IntStream.range(0, folders.size())
+                .boxed()
+                .collect(Collectors.toMap(Function.identity(), folders::get));
     }
 
     public static class Builder {
@@ -73,101 +126,6 @@ public class DataAggregator {
 
         public DataAggregator build() {
             return new DataAggregator(rootDataFolderPath, featureExtractor, random, trainPercentage, normalized);
-        }
-    }
-
-    public AggregatedData aggregateData(boolean inParallel) throws IOException {
-        final Map<String, Integer> labelsMap = mapLabels();
-
-        final DataSet[][] dataSets =
-                inParallel ? retrieveDataInParallel(labelsMap) : retrieveDataSequentially(labelsMap);
-
-        final DataSet[] trainDataSets = new DataSet[dataSets.length];
-        final DataSet[] testDataSets = new DataSet[dataSets.length];
-
-        // separate train and test data sets
-        for (int i = 0; i < dataSets.length; i++) {
-            trainDataSets[i] = dataSets[i][0];
-            testDataSets[i] = dataSets[i][1];
-        }
-
-        final DataSet trainDataSet = DataSet.concatenate(trainDataSets);
-        final DataSet testDataSet = DataSet.concatenate(testDataSets);
-
-        return new AggregatedData(trainDataSet, testDataSet, new TreeMap<>(labelsMap));
-    }
-
-    private DataSet[][] retrieveDataSequentially(Map<String, Integer> labelsMap) throws IOException {
-        try (Stream<Path> folderPaths = Files.list(Paths.get(rootDataFolderPath))) {
-            return folderPaths
-                    .map(path -> new ClassFolderReader(labelsMap.get(path.getFileName().toString()), path))
-                    .map(classFolderReader -> {
-                        try {
-                            return classFolderReader.extractDataSet(featureExtractor, normalized);
-                        } catch (IOException e) {
-                            throw new UncheckedIOException(e);
-                        }
-                    })
-                    .map(dataSet -> DataSet.splitInTwo(DataSet.shuffleDataSet(dataSet, random), trainPercentage))
-                    .toArray(DataSet[][]::new);
-        } catch (UncheckedIOException e) {
-            throw e.getCause();
-        }
-    }
-
-    private DataSet[][] retrieveDataInParallel(Map<String, Integer> labelsMap) throws IOException {
-        final ExecutorService executorService =
-                Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
-        try {
-            return retrieveData(labelsMap, executorService);
-        } catch (UncheckedInterruptedException e) {
-            throw new IOException(e.getCause());
-        } finally {
-            executorService.shutdown();
-        }
-    }
-
-    /**
-     * Walk folders and read data from each folder in parallel.
-     *
-     * @param labelsMap       contains the mapping between folder names and an Integer label
-     * @param executorService the {@link ExecutorService} used for parallel processing
-     * @return 2D {@link DataSet} array, first dimension is the class (folder name), second dimension is 0 for train, 1 for test
-     * @throws IOException                   when the folders / images cannot be read
-     * @throws UncheckedInterruptedException wrapper of an {@link InterruptedException} or {@link ExecutionException}, which
-     *                                       is recommended to be caught
-     */
-    private DataSet[][] retrieveData(Map<String, Integer> labelsMap, ExecutorService executorService)
-            throws IOException {
-        try (Stream<Path> folderPaths = Files.list(Paths.get(rootDataFolderPath))) {
-            return folderPaths
-                    .map(folderPath ->
-                            new ClassFolderReader(labelsMap.get(folderPath.getFileName().toString()), folderPath))
-                    .map(classFolderReader -> executorService
-                            .submit(() -> classFolderReader.extractDataSet(featureExtractor.copy(), normalized)))
-                    .collect(Collectors.toList())
-                    .stream()
-                    .map(dataSetFuture -> {
-                        try {
-                            return dataSetFuture.get();
-                        } catch (InterruptedException | ExecutionException e) {
-                            Thread.currentThread().interrupt();
-                            throw new UncheckedInterruptedException(e);
-                        }
-                    })
-                    .map(dataSet -> DataSet.splitInTwo(DataSet.shuffleDataSet(dataSet, random), trainPercentage))
-                    .toArray(DataSet[][]::new);
-        }
-    }
-
-    private Map<String, Integer> mapLabels() throws IOException {
-        final Map<String, Integer> labelsMap = new HashMap<>();
-        try (Stream<Path> dataFolders = Files.list(Paths.get(rootDataFolderPath))) {
-            dataFolders
-                    .map(Path::getFileName)
-                    .map(String::valueOf)
-                    .forEach(label -> labelsMap.put(label, labelsMap.size()));
-            return labelsMap;
         }
     }
 }
