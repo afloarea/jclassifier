@@ -2,17 +2,14 @@ package com.github.afloarea.jclassifier.data.aggregation;
 
 import com.github.afloarea.jclassifier.data.AggregatedData;
 import com.github.afloarea.jclassifier.data.DataSet;
+import com.github.afloarea.jclassifier.data.LabeledAggregatedData;
 import com.github.afloarea.jclassifier.extractors.FeatureExtractor;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.TreeMap;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -38,52 +35,43 @@ public final class DataAggregator {
         this.normalized = normalized;
     }
 
-    public AggregatedData aggregateData(boolean inParallel) throws IOException {
+    public LabeledAggregatedData aggregateData(boolean inParallel) throws IOException {
         final Map<Integer, Path> pathsByLabels = mapLabels();
 
-        final DataSet[][] dataSets;
+        final AggregatedData aggregatedData;
         try {
-            dataSets = inParallel ? retrieveDataInParallel(pathsByLabels) : retrieveDataSequentially(pathsByLabels);
+            aggregatedData = retrieveData(inParallel, pathsByLabels);
         } catch (UncheckedIOException e) {
             throw e.getCause();
         }
 
-        final var trainDataSets = new DataSet[dataSets.length];
-        final var testDataSets = new DataSet[dataSets.length];
-
-        // separate train and test data sets
-        for (int index = 0; index < dataSets.length; index++) {
-            trainDataSets[index] = dataSets[index][0];
-            testDataSets[index] = dataSets[index][1];
-        }
-
-        final DataSet trainDataSet = DataSet.concatenate(trainDataSets);
-        final DataSet testDataSet = DataSet.concatenate(testDataSets);
-
         final var labelsMap = pathsByLabels.entrySet().stream()
                 .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().getFileName().toString()));
-        return new AggregatedData(trainDataSet, testDataSet, new TreeMap<>(labelsMap));
+        return new LabeledAggregatedData(aggregatedData, new TreeMap<>(labelsMap));
     }
 
-    private DataSet[][] retrieveDataSequentially(Map<Integer, Path> labelsMap) {
-        return labelsMap.entrySet().stream()
+    private AggregatedData retrieveData(boolean isParallel, Map<Integer, Path> labelsMap) {
+        final AggregatedData[] aggregatedData = streamFrom(labelsMap.entrySet(), isParallel)
                 .map(entry -> new ClassFolderReader(entry.getKey(), entry.getValue()))
-                .map(classFolderReader -> classFolderReader.extractDataSet(featureExtractor, normalized))
-                .map(dataSet -> DataSet.splitInTwo(DataSet.shuffleDataSet(dataSet, random), trainPercentage))
-                .toArray(DataSet[][]::new);
+                .map(classFolderReader -> classFolderReader.extractDataSet(getExtractor(isParallel), normalized))
+                .map(dataSet -> DataSet.shuffleDataSet(dataSet, random))
+                .map(dataSet -> DataSet.splitInTwo(dataSet, trainPercentage))
+                .toArray(AggregatedData[]::new);
+
+        return AggregatedData.concatenate(aggregatedData);
     }
 
-    private DataSet[][] retrieveDataInParallel(Map<Integer, Path> labelsMap) {
-        return labelsMap.entrySet().parallelStream()
-                .map(entry -> new ClassFolderReader(entry.getKey(), entry.getValue()))
-                .map(classFolderReader -> classFolderReader.extractDataSet(featureExtractor.copy(), normalized))
-                .map(dataSet -> DataSet.splitInTwo(DataSet.shuffleDataSet(dataSet, random), trainPercentage))
-                .toArray(DataSet[][]::new);
+    private <T> Stream<T> streamFrom(Collection<T> collection, boolean parallel) {
+        return parallel ? collection.parallelStream() : collection.stream();
+    }
+
+    private FeatureExtractor getExtractor(boolean isParallel) {
+        return isParallel ? featureExtractor.copy() : featureExtractor;
     }
 
     private Map<Integer, Path> mapLabels() throws IOException {
         final List<Path> folders;
-        try (Stream<Path> dataFolders = Files.list(Paths.get(rootDataFolderPath))) {
+        try (Stream<Path> dataFolders = Files.list(Path.of(rootDataFolderPath))) {
             folders = dataFolders.collect(Collectors.toList());
         }
 

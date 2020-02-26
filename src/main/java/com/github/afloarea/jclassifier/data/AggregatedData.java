@@ -1,43 +1,34 @@
 package com.github.afloarea.jclassifier.data;
 
-import java.util.Map;
+import java.util.Arrays;
 
-public final class AggregatedData {
+public class AggregatedData {
 
-    private DataSet trainData;
-    private DataSet testData;
-    private Map<Integer, String> labelsMap;
+    private final DataSet trainData;
+    private final DataSet testData;
 
-    public AggregatedData() {
+    public static AggregatedData concatenate(AggregatedData... data) {
+        final DataSet[] trainData = Arrays.stream(data)
+                .map(AggregatedData::getTrainData)
+                .toArray(DataSet[]::new);
+
+        final DataSet[] testData = Arrays.stream(data)
+                .map(AggregatedData::getTestData)
+                .toArray(DataSet[]::new);
+
+        return new AggregatedData(DataSet.concatenate(trainData), DataSet.concatenate(testData));
     }
 
-    public AggregatedData(DataSet trainData, DataSet testData, Map<Integer, String> labelsMap) {
+    public AggregatedData(DataSet trainData, DataSet testData) {
         this.trainData = trainData;
         this.testData = testData;
-        this.labelsMap = labelsMap;
     }
 
     public DataSet getTrainData() {
         return trainData;
     }
 
-    public void setTrainData(DataSet trainData) {
-        this.trainData = trainData;
-    }
-
     public DataSet getTestData() {
         return testData;
-    }
-
-    public void setTestData(DataSet testData) {
-        this.testData = testData;
-    }
-
-    public Map<Integer, String> getLabelsMap() {
-        return labelsMap;
-    }
-
-    public void setLabelsMap(Map<Integer, String> labelsMap) {
-        this.labelsMap = labelsMap;
     }
 }

@@ -4,30 +4,24 @@ import java.util.Arrays;
 import java.util.Random;
 
 public final class DataSet {
-    private double[][] features;
-    private int[] labels;
-
-    public DataSet() {
-    }
+    private final double[][] features;
+    private final int[] labels;
 
     public DataSet(double[][] features, int[] labels) {
         this.features = features;
         this.labels = labels;
     }
 
-    public static DataSet[] splitInTwo(DataSet original, double firstHalfPercentage) {
-        final var firstHalfTotal = (int) (original.size() * firstHalfPercentage);
+    public static AggregatedData splitInTwo(DataSet original, double firstPartPercentage) {
+        final var firstPartTotal = (int) (original.size() * firstPartPercentage);
 
-        final double[][] featuresFirstHalf = Arrays.copyOfRange(original.features, 0, firstHalfTotal);
-        final double[][] featuresSecondHalf = Arrays.copyOfRange(original.features, firstHalfTotal, original.size());
+        final double[][] featuresFirstPart = Arrays.copyOfRange(original.features, 0, firstPartTotal);
+        final double[][] featuresSecondPart = Arrays.copyOfRange(original.features, firstPartTotal, original.size());
 
-        final int[] labelsFirstHalf = Arrays.copyOfRange(original.labels, 0, firstHalfTotal);
-        final int[] labelsSecondHalf = Arrays.copyOfRange(original.labels, firstHalfTotal, original.size());
+        final int[] labelsFirstPart = Arrays.copyOfRange(original.labels, 0, firstPartTotal);
+        final int[] labelsSecondPart = Arrays.copyOfRange(original.labels, firstPartTotal, original.size());
 
-        final DataSet[] result = new DataSet[2];
-        result[0] = new DataSet(featuresFirstHalf, labelsFirstHalf);
-        result[1] = new DataSet(featuresSecondHalf, labelsSecondHalf);
-        return result;
+        return new AggregatedData(new DataSet(featuresFirstPart, labelsFirstPart), new DataSet(featuresSecondPart, labelsSecondPart));
     }
 
     public static DataSet concatenate(DataSet... dataSets) {
@@ -72,15 +66,7 @@ public final class DataSet {
         return features;
     }
 
-    public void setFeatures(double[][] features) {
-        this.features = features;
-    }
-
     public int[] getLabels() {
         return labels;
-    }
-
-    public void setLabels(int[] labels) {
-        this.labels = labels;
     }
 }

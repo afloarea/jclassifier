@@ -29,11 +29,7 @@ public final class ClassFolderReader {
         final int[] labels = new int[features.length];
         Arrays.fill(labels, classLabel);
 
-        final DataSet dataSet = new DataSet();
-        dataSet.setFeatures(features);
-        dataSet.setLabels(labels);
-
-        return dataSet;
+        return new DataSet(features, labels);
     }
 
     private double[][] readFeatures(FeatureExtractor featureExtractor, boolean normalized) {
