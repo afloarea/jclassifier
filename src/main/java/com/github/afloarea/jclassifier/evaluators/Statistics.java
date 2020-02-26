@@ -23,36 +23,23 @@ import java.util.stream.Stream;
 public final class Statistics {
 
     private final int[][] confusionMatrix;
-    private final double accuracy;
-    private final double precision;
-    private final double recall;
-    private final double f1Score;
+    private final CoreStats coreStats;
 
     Statistics(int[][] confusionMatrix) {
         this.confusionMatrix = confusionMatrix;
-
-        final CoreStats stats = CoreStats.fromConfusionMatrix(confusionMatrix);
-        this.accuracy = stats.accuracy;
-        this.precision = stats.precision;
-        this.recall = stats.recall;
-        this.f1Score = stats.f1Score;
+        this.coreStats = CoreStats.fromConfusionMatrix(confusionMatrix);
     }
 
     @Override
     public String toString() {
-        return String.format("%n--------------------------%n" +
-                "%-15s: %8.4f %n" +
-                "%-15s: %8.4f %n" +
-                "%-15s: %8.4f %n" +
-                "%-15s: %8.4f %n" +
-                "--------------------------%n" +
+        return String.format(
+                "%n--------------------------%n" +
                 "Confusion Matrix ( G - guessed, A - actual ):%n" +
+                "%s" +
+                "%n--------------------------%n" +
                 "%s%n",
-                "Accuracy", accuracy,
-                "Precision (avg)", precision,
-                "Recall (avg)", recall,
-                "F1 Score (avg)", f1Score,
-                getConfusionMatrixString());
+                getConfusionMatrixString(),
+                coreStats);
     }
 
     private String getConfusionMatrixString() {
@@ -69,6 +56,7 @@ public final class Statistics {
 
     /**
      * The first index of the matrix corresponds to the guessed labels while the second index corresponds to the actual labels.
+     *
      * @return the confusion matrix
      */
     public int[][] getConfusionMatrix() {
@@ -76,19 +64,19 @@ public final class Statistics {
     }
 
     public double getAccuracy() {
-        return accuracy;
+        return coreStats.accuracy;
     }
 
     public double getPrecision() {
-        return precision;
+        return coreStats.precision;
     }
 
     public double getRecall() {
-        return recall;
+        return coreStats.recall;
     }
 
     public double getF1Score() {
-        return f1Score;
+        return coreStats.f1Score;
     }
 
     private static final class CoreStats {
@@ -136,6 +124,19 @@ public final class Statistics {
             stats.recall = recallSum / confusionMatrix.length;
             stats.f1Score = f1ScoreSum / confusionMatrix.length;
             return stats;
+        }
+
+        @Override
+        public String toString() {
+            return String.format(
+                    "%-15s: %8.4f %n" +
+                    "%-15s: %8.4f %n" +
+                    "%-15s: %8.4f %n" +
+                    "%-15s: %8.4f %n",
+                    "Accuracy", accuracy,
+                    "Precision (avg)", precision,
+                    "Recall (avg)", recall,
+                    "F1 Score (avg)", f1Score);
         }
     }
 }
