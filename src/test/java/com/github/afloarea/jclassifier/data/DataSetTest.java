@@ -7,10 +7,10 @@ import java.util.Random;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
-class DataSetTest {
+public class DataSetTest {
 
     @Test
-    void testSplit() {
+    public void testSplit() {
         final double[][] sampleData = new double[][] {
                 { 1,  2,  3},
                 { 4,  5,  6},
@@ -20,14 +20,14 @@ class DataSetTest {
 
         final int[] labels = new int[] {1, 1, 2, 2};
         final DataSet originalData = new DataSet(sampleData, labels);
-        final DataSet[] splitData = DataSet.splitInTwo(originalData, 0.75);
+        final AggregatedData splitData = DataSet.splitInTwo(originalData, 0.75);
 
-        assertEquals(3, splitData[0].size());
-        assertEquals(1, splitData[1].size());
+        assertEquals(3, splitData.getTrainData().size());
+        assertEquals(1, splitData.getTestData().size());
     }
 
     @Test
-    void testConcatenate() {
+    public void testConcatenate() {
         final var firstFeatures = new double[][] {
                 {1, 2, 3},
                 {4, 5, 6}
@@ -54,7 +54,7 @@ class DataSetTest {
     }
 
     @Test
-    void testShuffle() {
+    public void testShuffle() {
         final double[][] sampleData = new double[][] {
                 { 1,  2,  3},
                 { 4,  5,  6},

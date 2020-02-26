@@ -3,7 +3,7 @@ package com.github.afloarea.jclassifier.classifiers.knn;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-class KnnTest {
+public class KnnTest {
     private static final double[][] trainFeatures = {
             { 1,  2},
             {-1, -2}

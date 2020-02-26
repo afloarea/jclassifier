@@ -7,7 +7,7 @@ import java.awt.image.BufferedImage;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-class RgbExtractorTest {
+public class RgbExtractorTest {
 
     private static final int RED_BUCKET_SIZE = 256, GREEN_BUCKET_SIZE = 256, BLUE_BUCKET_SIZE = 256;
 
@@ -18,7 +18,7 @@ class RgbExtractorTest {
     private static final BufferedImage testImage = new BufferedImage(3, 3, BufferedImage.TYPE_INT_RGB);
 
     @BeforeAll
-    static void setUpImage() {
+    public static void setUpImage() {
         testImage.setRGB(0, 0, 255 << 16);
         testImage.setRGB(1, 0, 255 << 8);
         testImage.setRGB(2, 0, (255 << 8) + 255);
@@ -33,7 +33,7 @@ class RgbExtractorTest {
     }
 
     @Test
-    void testCountWithSimpleImage() {
+    public void testCountWithSimpleImage() {
         final var colorCount = featureExtractor.extractCount(testImage);
         assertEquals(1, colorCount[255]);
         assertEquals(2, colorCount[128]);
@@ -49,7 +49,7 @@ class RgbExtractorTest {
     }
 
     @Test
-    void testNormalizedWithSimpleImage() {
+    public void testNormalizedWithSimpleImage() {
         final double totalPixelCount = testImage.getHeight() * testImage.getWidth();
 
         final var delta = 0.000_000_01;

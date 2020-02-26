@@ -10,7 +10,7 @@ import java.util.Arrays;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-class HsvExtractorTest {
+public class HsvExtractorTest {
     private static final int HUE_BUCKET_SIZE = 10, SATURATION_BUCKET_SIZE = 5, BRIGHTNESS_BUCKET_SIZE = 3;
 
     // subject
@@ -20,7 +20,7 @@ class HsvExtractorTest {
     private static final BufferedImage testImage = new BufferedImage(3, 3, BufferedImage.TYPE_INT_RGB);
 
     @BeforeAll
-    static void setUpImage() {
+    public static void setUpImage() {
         testImage.setRGB(0, 0, Color.HSBtoRGB(0.05f, 0.1f, 0.2f));
         testImage.setRGB(1, 0, Color.HSBtoRGB(0.15f, 0.3f, 0.2f));
         testImage.setRGB(2, 0, Color.HSBtoRGB(0.25f, 0.5f, 0.2f));
@@ -35,7 +35,7 @@ class HsvExtractorTest {
     }
 
     @Test
-    void testSimpleExtractFeatureCount() {
+    public void testSimpleExtractFeatureCount() {
         final int[] features = featureExtractor.extractCount(testImage);
         assertArrayEquals(new int[] {
                 1, 1, 1, 1, 1, 1, 1, 1, 1, 0,   // hue
@@ -45,7 +45,7 @@ class HsvExtractorTest {
     }
 
     @Test
-    void testSumIsEqualToOneForEachColorChannel() {
+    public void testSumIsEqualToOneForEachColorChannel() {
         final var delta = 0.0000001;
         final double[] normalizedFeatures = featureExtractor.extractNormalized(testImage);
         assertEquals(3.0, Arrays.stream(normalizedFeatures).sum(), delta);
